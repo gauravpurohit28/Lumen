@@ -1,4 +1,4 @@
-# Insight
+# Lumen
 
 Insight uses gemini 1.5 pro to answer questions based on what you see and hear, and it remembers those memories for you.
 
