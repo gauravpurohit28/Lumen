@@ -52,4 +52,4 @@ This project is licensed under the [License Name] - see the [LICENSE](LICENSE) f
 
 ## Acknowledgements
 
-@advaitpaliwal
+@anishsoni29
