@@ -1,6 +1,6 @@
 # Lumen
 
-Insight uses gemini 1.5 pro to answer questions based on what you see and hear, and it remembers those memories for you.
+Lumen uses gemini 1.5 pro to answer questions based on what you see and hear, and it remembers those memories for you.
 
 check demo on [here](https://twitter.com/advaitpaliwal/status/1779697730526310521)
 
