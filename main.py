@@ -2,11 +2,15 @@ import cv2
 import numpy as np
 import speech_recognition as sr
 from transformers import pipeline
+import pyttsx3
 
 # YOLO Configuration files for object detection
 YOLO_CONFIG_PATH = "yolo_files/yolov3-tiny.cfg"
 YOLO_WEIGHTS_PATH = "yolo_files/yolov3-tiny.weights"
 YOLO_COCO_NAMES_PATH = "yolo_files/coco.names"
+
+# Initialize TTS engine
+engine = pyttsx3.init()
 
 # YOLO model for object detection
 net = cv2.dnn_DetectionModel(YOLO_CONFIG_PATH, YOLO_WEIGHTS_PATH)
@@ -77,19 +81,29 @@ def get_voice_input():
         print(f"User said: {user_input}")
         return user_input
     except sr.UnknownValueError:
-        return "Sorry, I couldn't understand what you said."
+        print("Sorry, I couldn't understand what you said.")
+        return ""
+    except sr.RequestError:
+        print("Could not request results from Google Speech Recognition service.")
+        return ""
+
+def speak(text):
+    """ Convert text to speech """
+    engine.say(text)
+    engine.runAndWait()  # Wait until the speech is finished
 
 def main():
     context = "You are currently in a room filled with books and a computer."  # Example context
     while True:
         print("Please speak your question or type 'exit' to quit:")
-        user_input = get_voice_input()  # You can replace this with a text input if you prefer
+        user_input = get_voice_input()  # Capture user input via voice
         
         if user_input.lower() == "exit":
             break
         
         response = get_huggingface_response(user_input, context)
         print(f"Assistant: {response}")
+        speak(response)  # Speak the response
 
 if __name__ == "__main__":
     main()
