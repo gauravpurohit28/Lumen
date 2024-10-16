@@ -1,13 +1,7 @@
 import cv2
 import numpy as np
 import speech_recognition as sr
-import openai
-import os
-
-from config import OPENAI_API_KEY  # Import the API key from config
-
-openai.api_key = OPENAI_API_KEY
-
+from transformers import pipeline
 
 # YOLO Configuration files for object detection
 YOLO_CONFIG_PATH = "yolo_files/yolov3-tiny.cfg"
@@ -64,18 +58,13 @@ def detect_objects(image_path):
     cv2.imwrite(output_image_path, image)
     return detected_objects, output_image_path
 
+# Load Hugging Face Transformers model
+qa_pipeline = pipeline("question-answering")
 
-def get_gpt_response(prompt):
-    """ Gets a smart response from OpenAI GPT using the new API """
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=150
-    )
-    return response['choices'][0]['message']['content'].strip()
-
+def get_huggingface_response(question, context):
+    """ Gets a response using Hugging Face Transformers """
+    result = qa_pipeline(question=question, context=context)
+    return result['answer']
 
 def get_voice_input():
     """ Capture user input via microphone """
@@ -90,26 +79,17 @@ def get_voice_input():
     except sr.UnknownValueError:
         return "Sorry, I couldn't understand what you said."
 
-def get_gpt_response(prompt):
-    """ Gets a smart response from OpenAI GPT using the new API """
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=150
-    )
-    return response['choices'][0]['message']['content'].strip()
-
-
 def main():
+    context = "You are currently in a room filled with books and a computer."  # Example context
     while True:
         print("Please speak your question or type 'exit' to quit:")
         user_input = get_voice_input()  # You can replace this with a text input if you prefer
-        response = get_gpt_response(user_input)
-        print(f"Assistant: {response}")
+        
         if user_input.lower() == "exit":
             break
+        
+        response = get_huggingface_response(user_input, context)
+        print(f"Assistant: {response}")
 
 if __name__ == "__main__":
     main()
