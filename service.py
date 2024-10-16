@@ -1,70 +1,57 @@
 import os
-import cv2
-import numpy as np
+import tempfile
 from datetime import datetime
-from uuid import uuid4
+from transformers import BlipProcessor, BlipForConditionalGeneration
+from PIL import Image
+from picture import take_picture  # Assuming you have a method to capture images from the camera
 
-# Create a folder to store images if it doesn't exist
-IMAGE_DIR = "images"
-if not os.path.exists(IMAGE_DIR):
-    os.makedirs(IMAGE_DIR)
+# Create a folder to store images in the current directory
+def get_image_folder(folder_name="CapturedImages"):
+    """Create a folder for storing captured images in the current directory."""
+    folder_path = os.path.join(os.getcwd(), folder_name)
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    return folder_path
 
-def take_picture(save_path):
-    """Simulate taking a picture and saving it."""
-    # Simulate camera capture
-    camera = cv2.VideoCapture(0)
-    
-    if not camera.isOpened():
-        raise RuntimeError("Could not open the camera.")
-    
-    ret, frame = camera.read()
-    if ret:
-        cv2.imwrite(save_path, frame)
-    else:
-        raise RuntimeError("Failed to capture image.")
-    
-    camera.release()
-    print(f"Picture saved at: {save_path}")
+# Initialize the image captioning model from Hugging Face
+processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
-def detect_color(image_path):
-    """Detect the dominant color in the image."""
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError(f"Could not read image from path: {image_path}")
-
-    # Convert image to RGB and reshape for clustering
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    pixels = image.reshape((-1, 3))
-    pixels = np.float32(pixels)
-
-    # KMeans clustering to find the dominant color
-    _, labels, centers = cv2.kmeans(pixels, 1, None, 
-                                    (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2), 
-                                    10, cv2.KMEANS_RANDOM_CENTERS)
-
-    dominant_color = centers[0].astype(int)
-    return f"Dominant color: RGB{tuple(dominant_color)}"
+def generate_image_description(image_path):
+    """Generate a description for a given image."""
+    image = Image.open(image_path)
+    inputs = processor(image, return_tensors="pt")
+    out = model.generate(**inputs)
+    description = processor.decode(out[0], skip_special_tokens=True)
+    return description
 
 def get_response(user_input):
-    """Capture an image and detect its dominant color."""
-    # Define a unique name for the image based on timestamp and UUID
-    image_filename = f"{uuid4().hex}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-    image_path = os.path.join(IMAGE_DIR, image_filename)
+    """Capture an image, generate a description, and return the response."""
+    # Folder for saving images
+    folder_name = "CapturedImages"
+    image_folder = get_image_folder(folder_name)
 
-    # Take a picture and save it to the images folder
-    take_picture(image_path)
+    # Take a picture and save locally
+    sanitized_input = ''.join(e for e in user_input if e.isalnum() or e == ' ').replace(' ', '_')
+    filepath = os.path.join(image_folder, f'{sanitized_input}.jpg')
+    
+    # Simulating the take_picture functionality
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_file:
+        filepath = temp_file.name
+        take_picture(filepath)
+    
+    print(f"Picture taken and saved as {filepath}")
+    
+    # Generate a description of the image
+    description = generate_image_description(filepath)
+    print(f"Generated description: {description}")
 
-    # Detect the dominant color
-    color_info = detect_color(image_path)
-    return color_info
+    return f"Assistant: {description}. Image saved at {filepath}."
 
+# Main loop to capture user input and respond with the image description
 if __name__ == "__main__":
     while True:
         user_input = input("Enter your question: ")
-        try:
-            # Process user input and capture image
-            response = get_response(user_input)
-            print(response)
-        except Exception as e:
-            print(f"Error: {e}")
+        response = get_response(user_input)
+        print(response)
         print("\n")
