@@ -27,14 +27,26 @@ def play_audio(file_path):
     play_obj = wave_obj.play()
     play_obj.wait_done()
 
-def speak(text: str):
-    temp_file_path = generate_wave(text)
-    
-    print(f"Audio content generated for text: '{text}'")
 
-    play_audio(temp_file_path)
+import pyttsx3
 
-    os.remove(temp_file_path)
+def speak(text):
+    engine = pyttsx3.init()
+    engine.say(text)
+    engine.runAndWait()
 
 if __name__ == "__main__":
-    speak("Hello, how are you?")
+    speak("This is a test to check the audio output.")
+
+
+# def speak(text: str):
+#     temp_file_path = generate_wave(text)
+    
+#     print(f"Audio content generated for text: '{text}'")
+
+#     play_audio(temp_file_path)
+
+#     os.remove(temp_file_path)
+
+# if __name__ == "__main__":
+#     speak("Hello, how are you?")
