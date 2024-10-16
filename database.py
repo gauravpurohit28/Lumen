@@ -5,7 +5,7 @@ from vars import FIREBASE_CREDENTIALS_FILE
 
 
 class FirestoreDB:
-    _instance = None  # Class attribute to hold the single instance
+    _instance = None 
 
     def __new__(cls):
         """Override __new__ to control the creation of new instances."""

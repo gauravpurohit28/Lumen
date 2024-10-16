@@ -1,43 +1,59 @@
-import pvporcupine
 import pyaudio
+import numpy as np
+import wave
+import time
 import struct
-from config import PICOVOICE_ACCESS_KEY
 
+# Function to record audio and save it as a WAV file
+def record_audio(filename, duration=3, rate=16000):
+    pa = pyaudio.PyAudio()
+    stream = pa.open(format=pyaudio.paInt16, channels=1, rate=rate, input=True, frames_per_buffer=1024)
 
-def detect_wake_word():
-    porcupine = None
-    pa = None
-    audio_stream = None
+    print("Recording...")
 
-    try:
-        porcupine = pvporcupine.create(
-            access_key=PICOVOICE_ACCESS_KEY,
-            keywords=["hey google"]
-        )
-        pa = pyaudio.PyAudio()
-        audio_stream = pa.open(
-            rate=porcupine.sample_rate,
-            channels=1,
-            format=pyaudio.paInt16,
-            input=True,
-            frames_per_buffer=porcupine.frame_length
-        )
-        print("Listening for 'Hey Google'...")
+    frames = []
+    for _ in range(0, int(rate / 1024 * duration)):
+        data = stream.read(1024)
+        frames.append(data)
 
-        while True:
-            pcm = audio_stream.read(porcupine.frame_length)
-            pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
-            keyword_index = porcupine.process(pcm)
-            if keyword_index >= 0:
-                print("Wake word detected")
-                return True
+    print("Recording done.")
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        if porcupine is not None:
-            porcupine.delete()
-        if audio_stream is not None:
-            audio_stream.close()
-        if pa is not None:
-            pa.terminate()
+    stream.stop_stream()
+    stream.close()
+    pa.terminate()
+
+    wf = wave.open(filename, 'wb')
+    wf.setnchannels(1)
+    wf.setsampwidth(pa.get_sample_size(pyaudio.paInt16))
+    wf.setframerate(rate)
+    wf.writeframes(b''.join(frames))
+    wf.close()
+
+# Function to listen and process audio input
+def listen_for_wake_word():
+    pa = pyaudio.PyAudio()
+    stream = pa.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
+
+    print("Listening for the wake word...")
+    
+    while True:
+        data = stream.read(1024)
+        audio_data = np.frombuffer(data, dtype=np.int16)
+
+        # Example: crude approach to detect wake word using volume (this is NOT accurate)
+        volume_threshold = 2000
+        if np.max(audio_data) > volume_threshold:
+            print("Wake word detected!")
+            return True
+
+# Main function to either record a template or detect wake word
+if __name__ == "__main__":
+    print("1. Record wake word template\n2. Detect wake word")
+    choice = input("Enter choice (1 or 2): ")
+
+    if choice == "1":
+        record_audio("wake_word_template.wav")
+    elif choice == "2":
+        listen_for_wake_word()
+    else:
+        print("Invalid choice")

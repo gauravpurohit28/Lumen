@@ -1,49 +1,40 @@
-from google.cloud import texttospeech
-import os
-import pygame
-from time import sleep
-import tempfile
 
+import os
+import wave
+import numpy as np
+from time import sleep
+import simpleaudio as sa
+
+def generate_wave(text):
+    # Simulate text-to-speech conversion by generating a simple wave sound for each letter/word
+    framerate = 44100
+    t = np.linspace(0, 1, framerate, False)
+    audio_data = np.sin(440 * 2 * np.pi * t) * 32767
+    audio_data = audio_data.astype(np.int16)
+    
+    temp_wave = 'temp_output.wav'
+    
+    with wave.open(temp_wave, 'wb') as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(framerate)
+        wf.writeframes(audio_data.tobytes())
+    
+    return temp_wave
+
+def play_audio(file_path):
+    wave_obj = sa.WaveObject.from_wave_file(file_path)
+    play_obj = wave_obj.play()
+    play_obj.wait_done()
 
 def speak(text: str):
-    client = texttospeech.TextToSpeechClient()
-    synthesis_input = texttospeech.SynthesisInput(text=text)
-    voice = texttospeech.VoiceSelectionParams(
-        language_code="en-US",
-        ssml_gender=texttospeech.SsmlVoiceGender.MALE
-    )
-    audio_config = texttospeech.AudioConfig(
-        audio_encoding=texttospeech.AudioEncoding.MP3
-    )
-    response = client.synthesize_speech(
-        input=synthesis_input,
-        voice=voice,
-        audio_config=audio_config
-    )
+    temp_file_path = generate_wave(text)
+    
+    print(f"Audio content generated for text: '{text}'")
 
-    # Create a temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_file:
-        temp_file.write(response.audio_content)
-        temp_file_path = temp_file.name
+    play_audio(temp_file_path)
 
-    print(f'Audio content written to temporary file: {temp_file_path}')
-
-    # Initialize pygame mixer
-    pygame.mixer.init()
-
-    # Load the temporary audio file
-    pygame.mixer.music.load(temp_file_path)
-
-    # Play the audio file
-    pygame.mixer.music.play()
-
-    # Wait for the music to play completely
-    while pygame.mixer.music.get_busy():
-        sleep(0.5)
-
-    # Remove the temporary file
     os.remove(temp_file_path)
-
 
 if __name__ == "__main__":
     speak("Hello, how are you?")
