@@ -1,77 +1,66 @@
 import cv2
 import numpy as np
-import speech_recognition as sr
-from transformers import pipeline
 import pyttsx3
-
-# YOLO Configuration files for object detection
-YOLO_CONFIG_PATH = "yolo_files/yolov3-tiny.cfg"
-YOLO_WEIGHTS_PATH = "yolo_files/yolov3-tiny.weights"
-YOLO_COCO_NAMES_PATH = "yolo_files/coco.names"
+import speech_recognition as sr
+import os
+import tempfile
+from transformers import BlipProcessor, BlipForConditionalGeneration
+from PIL import Image
+from picture import take_picture  # Assuming you have a method to capture images from the camera
 
 # Initialize TTS engine
 engine = pyttsx3.init()
 
-# YOLO model for object detection
-net = cv2.dnn_DetectionModel(YOLO_CONFIG_PATH, YOLO_WEIGHTS_PATH)
-net.setInputSize(416, 416)
-net.setInputScale(1.0 / 255)
-net.setInputSwapRB(True)
+# Initialize the image captioning model from Hugging Face
+processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
-with open(YOLO_COCO_NAMES_PATH, "r") as f:
-    classes = [line.strip() for line in f.readlines()]
+# Create a folder to store images in the current directory
+def get_image_folder(folder_name="CapturedImages"):
+    """Create a folder for storing captured images in the current directory."""
+    folder_path = os.path.join(os.getcwd(), folder_name)
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    return folder_path
 
-# Color for bounding boxes
-COLORS = np.random.uniform(0, 255, size=(len(classes), 3))
+def generate_image_description(image_path):
+    """Generate a description for a given image."""
+    image = Image.open(image_path)
+    inputs = processor(image, return_tensors="pt")
+    out = model.generate(**inputs)
+    description = processor.decode(out[0], skip_special_tokens=True)
+    return description
 
-def detect_top_colors(image_path, top_n=3):
-    """ Detects the top N dominant colors in the image """
-    image = cv2.imread(image_path)
-    if image is None:
-        return "Could not open image"
-    
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    pixels = image.reshape((-1, 3))
-    pixels = np.float32(pixels)
-    
-    # KMeans clustering to find top N dominant colors
-    _, labels, centers = cv2.kmeans(pixels, top_n, None, (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2), 10, cv2.KMEANS_RANDOM_CENTERS)
-    dominant_colors = [tuple(map(int, center)) for center in centers]
-    
-    return f"Top {top_n} dominant colors: {dominant_colors}"
+def get_response(user_input):
+    """Capture an image, generate a description, and return the response."""
+    # Folder for saving images
+    folder_name = "CapturedImages"
+    image_folder = get_image_folder(folder_name)
 
-def detect_objects(image_path):
-    """ Detects objects in the image using YOLO """
-    image = cv2.imread(image_path)
-    if image is None:
-        return "Could not open image", None
-    
-    # Detect objects using YOLO
-    class_ids, confidences, boxes = net.detect(image, confThreshold=0.5, nmsThreshold=0.4)
+    # Take a picture and save locally
+    sanitized_input = ''.join(e for e in user_input if e.isalnum() or e == ' ').replace(' ', '_')
+    filepath = os.path.join(image_folder, f'{sanitized_input}.jpg')
 
-    detected_objects = []
-    for class_id, confidence, box in zip(class_ids.flatten(), confidences.flatten(), boxes):
-        x, y, w, h = box
-        label = str(classes[class_id])
-        detected_objects.append(label)
-        color = COLORS[class_id]
-        cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
-        cv2.putText(image, label, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
-    
-    output_image_path = "detected_objects.jpg"
-    cv2.imwrite(output_image_path, image)
-    return detected_objects, output_image_path
+    # Simulating the take_picture functionality
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_file:
+        filepath = temp_file.name
+        take_picture(filepath)
 
-# Load Hugging Face Transformers model
-qa_pipeline = pipeline("question-answering")
+    print(f"Picture taken and saved as {filepath}")
 
-def get_huggingface_response(question, context):
-    """ Gets a response using Hugging Face Transformers """
-    result = qa_pipeline(question=question, context=context)
-    return result['answer']
+    # Generate a description of the image
+    description = generate_image_description(filepath)
+    print(f"Generated description: {description}")
+
+    return description
+
+def speak(text):
+    """Convert text to speech."""
+    engine.say(text)
+    engine.runAndWait()
 
 def get_voice_input():
-    """ Capture user input via microphone """
+    """Capture user input via microphone"""
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         print("Listening...")
@@ -87,23 +76,21 @@ def get_voice_input():
         print("Could not request results from Google Speech Recognition service.")
         return ""
 
-def speak(text):
-    """ Convert text to speech """
-    engine.say(text)
-    engine.runAndWait()  # Wait until the speech is finished
-
 def main():
-    context = "You are currently in a room filled with books and a computer."  # Example context
     while True:
-        print("Please speak your question or type 'exit' to quit:")
+        print("Please ask your question or say 'exit' to quit:")
         user_input = get_voice_input()  # Capture user input via voice
         
         if user_input.lower() == "exit":
             break
-        
-        response = get_huggingface_response(user_input, context)
-        print(f"Assistant: {response}")
-        speak(response)  # Speak the response
+
+        if user_input:  # If voice input is captured successfully
+            # Generate response based on the captured image
+            response = get_response(user_input)
+            print(f"Assistant: {response}")
+            
+            # Speak the response
+            speak(response)
 
 if __name__ == "__main__":
     main()
