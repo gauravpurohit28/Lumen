@@ -26,7 +26,7 @@ check demo on [here](https://twitter.com/advaitpaliwal/status/177969773052631052
 
 1. Clone the repository to your Raspberry Pi or local machine:
    ```
-   git clone https://github.com/advaitpaliwal/insight
+   git clone [https://github.com/gauravpurohit28/Lumen.git]
    ```
 2. Install the required dependencies:
    ```
