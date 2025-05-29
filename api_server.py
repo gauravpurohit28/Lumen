@@ -3,6 +3,7 @@ import base64
 import os
 import time
 import traceback
+import json
 from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
@@ -27,6 +28,31 @@ app.add_middleware(
 )
 
 global_last_image_path = None
+
+LOCAL_DATA_PATH = os.path.join(os.path.dirname(__file__), 'local_data.json')
+
+def load_history():
+    if not os.path.exists(LOCAL_DATA_PATH):
+        return []
+    try:
+        with open(LOCAL_DATA_PATH, 'r') as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            return data
+        return []
+    except Exception:
+        return []
+
+def save_history(history):
+    with open(LOCAL_DATA_PATH, 'w') as f:
+        json.dump(history, f)
+
+def add_history_entry(entry):
+    history = load_history()
+    history.insert(0, entry)
+    if len(history) > 10:
+        history = history[:10]
+    save_history(history)
 
 def gemini_image_caption(image_path):
     with open(image_path, "rb") as img_file:
@@ -64,9 +90,15 @@ async def api_capture():
         take_picture(image_path)
         global_last_image_path = image_path
         description = gemini_image_caption(image_path)
-        # Optionally, return base64 for frontend display
         with open(image_path, "rb") as img_file:
             image_b64 = base64.b64encode(img_file.read()).decode("utf-8")
+        # Add to history (no question/answer yet)
+        add_history_entry({
+            "image_b64": image_b64,
+            "description": description,
+            "question": None,
+            "answer": None
+        })
         return {"image_b64": image_b64, "description": description}
     except Exception as e:
         print("/api/capture error:", e)
@@ -82,6 +114,12 @@ async def api_question(request: Request):
         if not global_last_image_path or not os.path.exists(global_last_image_path):
             return JSONResponse(status_code=400, content={"error": "No image captured yet."})
         answer = gemini_vqa(global_last_image_path, question)
+        # Update last history entry with question/answer
+        history = load_history()
+        if history:
+            history[0]["question"] = question
+            history[0]["answer"] = answer
+            save_history(history)
         return {"answer": answer}
     except Exception as e:
         print("/api/question error:", e)
@@ -114,10 +152,24 @@ async def api_question_audio(audio: UploadFile = File(...)):
         if not global_last_image_path or not os.path.exists(global_last_image_path):
             return JSONResponse(status_code=400, content={"error": "No image captured yet."})
         answer = gemini_vqa(global_last_image_path, question)
+        # Update last history entry with question/answer
+        history = load_history()
+        if history:
+            history[0]["question"] = question
+            history[0]["answer"] = answer
+            save_history(history)
         return {"answer": answer}
     except Exception as e:
         print("/api/question-audio error:", e)
         traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/api/history")
+async def api_history():
+    try:
+        history = load_history()
+        return {"history": history}
+    except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/api/tts")
