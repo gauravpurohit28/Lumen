@@ -1,11 +1,11 @@
 import cv2
 from time import sleep
-from text_to_speech import speak
+#from text_to_speech import speak
 from PIL import Image
 
 def take_picture(filepath: str):
     """Take a picture using the specified camera and save it to the provided file path."""
-    speak("Alright, I'm taking a picture now.")
+    #speak("Alright, I'm taking a picture now.")
     print("Taking picture...")
 
     # Try opening the camera at index 0
@@ -14,20 +14,20 @@ def take_picture(filepath: str):
     
     if not cap.isOpened():
         print("Error: Camera failed to initialize.")
-        speak("Sorry, I couldn't access the camera.")
+        #speak("Sorry, I couldn't access the camera.")
         cap.release()
         return None
 
     ret, frame = cap.read()
     if not ret:
         print("Can't receive frame (stream end?). Exiting ...")
-        speak("Sorry, I couldn't take a picture.")
+        #speak("Sorry, I couldn't take a picture.")
         cap.release()
         return None
 
     cv2.imwrite(filepath, frame)
     print(f"Picture taken and saved as {filepath}")
-    speak("Got it! I've taken the picture and saved it.")
+    #speak("Got it! I've taken the picture and saved it.")
     return f"Picture taken and saved as {filepath}"
 
 def generate_image_description(image_path):
@@ -40,14 +40,13 @@ def generate_image_description(image_path):
         # Print the description as written text
         print(f"Image description: {description}")
         
-        # Speak the description as audio
-        speak(description)
+        #speak(description)
         
         return description
     except Exception as e:
         error_msg = "Could not identify the image."
         print(f"Error: {e}")
-        speak(error_msg)
+        #speak(error_msg)
         return error_msg
 
 # Main logic
