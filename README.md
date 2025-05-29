@@ -49,7 +49,3 @@ The project's configuration can be modified by editing the `config.example.py` f
 ## License
 
 This project is licensed under the [License Name] - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-@anishsoni29
