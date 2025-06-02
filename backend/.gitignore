@@ -1,0 +1,52 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+venv/
+pi/
+path/
+
+# Ignore config files that contain sensitive information
+firebase_creds.json
+storage_creds.json
+config.py
+local_data.json
+
+# Audio and image files
+*.mp3
+*.wav
+*.png
+*.jpg
+*.jpeg
+*.gif
+CapturedImages/
+images/
+
+# Docker
+Dockerfile
+
+# Ignore test files or temporary files
+test.txt
+*.log
+
+# Python package dependencies
+*.egg-info/
+*.dist-info/
+*.eggs
+*.whl
+
+# Python environment files
+.env
+.env.*
+.pipfile
+Pipfile.lock
+
+# Ignore machine-specific settings
+.vscode/
+.idea/
+
+# Other backups or unnecessary system files
+.DS_Store
+Thumbs.db

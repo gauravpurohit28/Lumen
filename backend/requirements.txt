@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pvporcupine
+google-generativeai
+SpeechRecognition
+firebase-admin
+google-cloud-texttospeech
+torch
+transformers
+accelerate
+opencv-python
+Pillow 
