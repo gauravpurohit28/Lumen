@@ -26,7 +26,7 @@ Lumen is an accessibility-focused system designed for blind and visually impaire
 
 ## Software Requirements
 - **Python 3.8+** (backend)
-- **Node.js** (frontend)
+- **React.js** (frontend)
 - **ffmpeg** (for audio conversion)
 - See `requirements.txt` and `requirements-pi.txt` for Python dependencies
 - See `frontend/package.json` for frontend dependencies
