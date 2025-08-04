@@ -12,3 +12,4 @@ pydub
 simpleaudio
 pyttsx3
 numpy
+python-dotenv
