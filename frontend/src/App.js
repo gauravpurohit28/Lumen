@@ -3,14 +3,8 @@ import { Container, Typography, Button, CircularProgress, Box, Grid, Card, CardC
 import HearingIcon from '@mui/icons-material/Hearing';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import ImageIcon from '@mui/icons-material/Image';
+import { captureImage, askQuestionAudio, getHistory, speakText } from './api'; // Import API functions
 import axios from 'axios';
-
-function speakText(text) {
-  if ('speechSynthesis' in window) {
-    const utterance = new window.SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(utterance);
-  }
-}
 
 function App() {
   const [loading, setLoading] = useState(false);
@@ -62,7 +56,7 @@ function App() {
 
   const fetchHistory = async () => {
     try {
-      const res = await axios.get('/api/history');
+      const res = await getHistory(); // Use getHistory from api.js
       setHistory(res.data.history || []);
     } catch (err) {
       // ignore for now
@@ -79,12 +73,9 @@ function App() {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       const formData = new FormData();
       formData.append('audio', audioBlob, 'question.webm');
-      const answerRes = await axios.post('/api/question-audio', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const ans = answerRes.data.answer;
-      setAnswer(ans);
-      speakText(ans);
+      const ans = await askQuestionAudio(audioBlob); // Use askQuestionAudio from api.js
+      setAnswer(ans.answer);
+      speakText(ans.answer);
       setStep('waiting_for_question');
       await fetchHistory();
     } catch (err) {
@@ -103,7 +94,7 @@ function App() {
       setStep('capturing');
       try {
         // 1. Capture image and get description
-        const captureRes = await axios.post('/api/capture');
+        const captureRes = await captureImage(); // Use captureImage from api.js
         const desc = captureRes.data.description;
         const imgB64 = captureRes.data.image_b64;
         setDescription(desc);
