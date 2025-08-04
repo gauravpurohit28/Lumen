@@ -12,8 +12,6 @@ from pydub import AudioSegment
 import speech_recognition as sr
 import google.generativeai as genai
 from google.cloud import texttospeech
-from config import GOOGLE_API_KEY
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
